@@ -1,4 +1,8 @@
-SPECIES_META = {
+import json
+from pathlib import Path
+
+# Built-in species (always available)
+_BUILTIN_SPECIES_META = {
     "sheep": {
         "assembly_name": "Oar_rambouillet_v1.0",
         "fasta_file": "sheep.fa.gz",
@@ -14,8 +18,23 @@ SPECIES_META = {
 }
 
 
-def make_assembly_config(species_id: str, base_url: str) -> dict:
-    meta = SPECIES_META[species_id]
+def _load_species_meta(data_dir: str | None = None) -> dict:
+    """Load built-in species + any user-added genomes from data/genomes.json."""
+    meta = dict(_BUILTIN_SPECIES_META)
+    if data_dir:
+        genomes_json = Path(data_dir) / "genomes.json"
+        if genomes_json.exists():
+            with open(genomes_json) as f:
+                meta.update(json.load(f))
+    return meta
+
+
+def get_species_meta(data_dir: str | None = None) -> dict:
+    return _load_species_meta(data_dir)
+
+
+def make_assembly_config(species_id: str, base_url: str, data_dir: str | None = None) -> dict:
+    meta = _load_species_meta(data_dir)[species_id]
     genome_url = f"{base_url}/genome/{species_id}"
     return {
         "name": meta["assembly_name"],
@@ -32,13 +51,15 @@ def make_assembly_config(species_id: str, base_url: str) -> dict:
     }
 
 
-def make_track_configs(species_id: str, base_url: str) -> list[dict]:
-    meta = SPECIES_META[species_id]
-    ann_url = f"{base_url}/annotations/{species_id}"
-    qtl_url = f"{base_url}/qtl/{species_id}"
+def make_track_configs(species_id: str, base_url: str, data_dir: str | None = None) -> list[dict]:
+    meta = _load_species_meta(data_dir)[species_id]
     assembly_name = meta["assembly_name"]
-    return [
-        {
+    tracks = []
+
+    # Gene annotations (optional — de novo genomes may not have these)
+    if meta.get("gff_file"):
+        ann_url = f"{base_url}/annotations/{species_id}"
+        tracks.append({
             "type": "FeatureTrack",
             "trackId": f"{species_id}-genes",
             "name": "Gene Annotations",
@@ -50,8 +71,12 @@ def make_track_configs(species_id: str, base_url: str) -> list[dict]:
                     "location": {"uri": f"{ann_url}/{meta['gff_file']}.tbi"},
                 },
             },
-        },
-        {
+        })
+
+    # QTL track (optional)
+    if meta.get("qtl_bed_file"):
+        qtl_url = f"{base_url}/qtl/{species_id}"
+        tracks.append({
             "type": "FeatureTrack",
             "trackId": f"{species_id}-qtls",
             "name": "QTLs",
@@ -65,5 +90,6 @@ def make_track_configs(species_id: str, base_url: str) -> list[dict]:
                     },
                 },
             },
-        },
-    ]
+        })
+
+    return tracks

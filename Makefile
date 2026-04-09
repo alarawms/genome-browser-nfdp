@@ -2,7 +2,7 @@ DATA_DIR ?= data
 
 .PHONY: data data-docker download-genomes download-annotations download-qtls \
         index-genomes convert-qtls prepare-tracks \
-        setup dev-backend dev-frontend dev clean
+        setup add-genome dev-backend dev-frontend dev clean
 
 ## === Setup ===
 
@@ -44,6 +44,19 @@ convert-qtls: download-qtls
 
 prepare-tracks: download-annotations convert-qtls
 	bash scripts/prepare_tracks.sh $(DATA_DIR)
+
+## === Add Custom Genome ===
+
+add-genome:
+ifndef FASTA
+	@echo "Usage: make add-genome FASTA=/path/to/assembly.fa ID=species_id [NAME=DisplayName] [ASSEMBLY=AssemblyName] [SCIENTIFIC='Scientific name']"
+	@exit 1
+endif
+ifndef ID
+	@echo "Error: ID is required. Example: make add-genome FASTA=my.fa ID=camel"
+	@exit 1
+endif
+	bash scripts/add_genome.sh "$(ID)" "$(FASTA)" "$(or $(ASSEMBLY),$(ID))" "$(or $(NAME),$(ID))" "$(or $(SCIENTIFIC),)"
 
 ## === Development ===
 

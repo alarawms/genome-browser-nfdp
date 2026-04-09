@@ -1,11 +1,13 @@
+import os
+
 from fastapi import APIRouter, Request
 
-from src.backend.jbrowse_config import make_assembly_config, make_track_configs
+from src.backend.jbrowse_config import make_assembly_config, make_track_configs, get_species_meta
 from src.backend.models import Species
 
 router = APIRouter(prefix="/api/species", tags=["species"])
 
-SPECIES_INFO = [
+_BUILTIN_SPECIES = [
     Species(
         id="sheep",
         name="Sheep",
@@ -23,14 +25,33 @@ SPECIES_INFO = [
 ]
 
 
+def _get_all_species() -> list[Species]:
+    """Built-in species + any user-added genomes from data/genomes.json."""
+    data_dir = os.environ.get("DATA_DIR", "data")
+    meta = get_species_meta(data_dir)
+    builtin_ids = {s.id for s in _BUILTIN_SPECIES}
+    result = list(_BUILTIN_SPECIES)
+    for sid, info in meta.items():
+        if sid not in builtin_ids:
+            result.append(Species(
+                id=sid,
+                name=info.get("name", sid),
+                scientific_name=info.get("scientific_name", ""),
+                assembly=info["assembly_name"],
+                chromosome_count=info.get("chromosome_count", 0),
+            ))
+    return result
+
+
 @router.get("")
 def list_species() -> list[Species]:
-    return SPECIES_INFO
+    return _get_all_species()
 
 
 @router.get("/{species_id}/jbrowse-config")
 def jbrowse_config(species_id: str, request: Request):
+    data_dir = os.environ.get("DATA_DIR", "data")
     base_url = str(request.base_url).rstrip("/") + "/data"
-    assembly = make_assembly_config(species_id, base_url)
-    tracks = make_track_configs(species_id, base_url)
+    assembly = make_assembly_config(species_id, base_url, data_dir)
+    tracks = make_track_configs(species_id, base_url, data_dir)
     return {"assembly": assembly, "tracks": tracks}
