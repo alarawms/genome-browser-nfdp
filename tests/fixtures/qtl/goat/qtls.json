@@ -1,0 +1,26 @@
+[
+  {
+    "id": "goat_qtl_001",
+    "species_id": "goat",
+    "chromosome": "5",
+    "start": 22000000,
+    "end": 24500000,
+    "trait": "Milk fat percentage",
+    "trait_category": "Milk",
+    "score": 3.5,
+    "pubmed_id": "30200001",
+    "source": "Animal QTLdb"
+  },
+  {
+    "id": "goat_qtl_002",
+    "species_id": "goat",
+    "chromosome": "5",
+    "start": 30000000,
+    "end": 32000000,
+    "trait": "Cashmere fiber length",
+    "trait_category": "Fiber",
+    "score": 4.0,
+    "pubmed_id": "30200002",
+    "source": "Animal QTLdb"
+  }
+]
