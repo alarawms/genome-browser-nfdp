@@ -1,0 +1,13 @@
+name: genome-browser
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - samtools
+  - htslib
+  - curl
+  - pip
+  - pip:
+      - -r requirements.txt

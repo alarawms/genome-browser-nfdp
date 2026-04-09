@@ -1,13 +1,31 @@
 DATA_DIR ?= data
 
-.PHONY: data download-genomes download-annotations download-qtls \
+.PHONY: data data-docker download-genomes download-annotations download-qtls \
         index-genomes convert-qtls prepare-tracks \
-        dev-backend dev-frontend dev clean
+        setup dev-backend dev-frontend dev clean
+
+## === Setup ===
+
+setup:
+	@echo "Setting up environment..."
+	@if command -v conda >/dev/null 2>&1; then \
+		echo "  conda found — creating environment from environment.yml"; \
+		conda env create -f environment.yml || conda env update -f environment.yml; \
+		echo "  ✓ Run: conda activate genome-browser"; \
+	else \
+		echo "  No conda found. Options:"; \
+		echo "    1. Install conda: https://docs.conda.io/en/latest/miniconda.html"; \
+		echo "    2. Use Docker:  make data-docker"; \
+	fi
 
 ## === Data Pipeline ===
 
 data: download-genomes download-annotations download-qtls index-genomes convert-qtls prepare-tracks
 	@echo "✓ All data ready"
+
+data-docker:
+	docker build -t genome-browser-data -f Dockerfile.data-pipeline .
+	docker run --rm -v $(CURDIR)/$(DATA_DIR):/data genome-browser-data
 
 download-genomes:
 	bash scripts/download_genomes.sh $(DATA_DIR)
