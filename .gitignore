@@ -36,3 +36,6 @@ autonomous/
 
 # Remember (session memory)
 .remember/
+
+# Git worktrees
+.worktrees/
