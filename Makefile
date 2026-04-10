@@ -32,8 +32,8 @@ data-docker:
 
 process-docker:
 	docker build -t genome-browser-data -f Dockerfile.data-pipeline .
-	docker run --rm --user $(shell id -u):$(shell id -g) -v $(CURDIR)/$(DATA_DIR):/data genome-browser-data \
-		make index-genomes convert-qtls prepare-tracks DATA_DIR=/data
+	docker run --rm --user $(shell id -u):$(shell id -g) --entrypoint make -v $(CURDIR)/$(DATA_DIR):/data genome-browser-data \
+		index-genomes convert-qtls prepare-tracks DATA_DIR=/data
 
 download-genomes:
 	bash scripts/download_genomes.sh $(DATA_DIR)
