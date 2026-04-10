@@ -69,7 +69,7 @@ endif
 ## === Development ===
 
 dev-backend:
-	DATA_DIR=$(DATA_DIR) .venv/bin/python -m uvicorn src.backend.main:app --reload --port 8888
+	DATA_DIR=$(DATA_DIR) .venv/bin/python -m uvicorn src.backend.main:app --reload --port 8880
 
 dev-frontend:
 	cd src/frontend && npm run dev
