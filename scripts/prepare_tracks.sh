@@ -18,8 +18,8 @@ prepare_gff() {
     fi
 
     echo "  Sorting and indexing $species GFF3..."
-    # Decompress, sort, recompress, index
-    zcat "$infile" | grep -v "^#" | sort -k1,1 -k4,4n | bgzip > "$sorted"
+    # Decompress, filter comments, sort by position, recompress, index
+    zcat "$infile" | grep -v "^#" | sort -t$'\t' -k1,1 -k4,4n | bgzip > "$sorted"
     tabix -p gff "$sorted"
     echo "  ✓ $sorted + .tbi"
 }
@@ -35,6 +35,12 @@ prepare_bed() {
     fi
     if [ -f "$sorted.tbi" ]; then
         echo "  ✓ $sorted already indexed"
+        return
+    fi
+
+    # Skip if empty BED file (0 QTLs parsed)
+    if [ ! -s "$infile" ]; then
+        echo "  ⚠ $infile is empty, skipping"
         return
     fi
 

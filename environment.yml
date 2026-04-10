@@ -7,7 +7,9 @@ dependencies:
   - python=3.11
   - samtools
   - htslib
+  - ncbi-datasets-cli
   - curl
+  - unzip
   - pip
   - pip:
       - -r requirements.txt

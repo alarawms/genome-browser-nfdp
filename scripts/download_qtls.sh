@@ -13,29 +13,40 @@ download_qtl() {
         echo "  ✓ $outfile already exists, skipping"
         return
     fi
+
     echo "  Downloading $species QTL data..."
-    curl -fL -o "$outfile" "$url"
-    # QTLdb may return gzipped files — decompress if needed
-    if file "$outfile" | grep -q "gzip"; then
-        echo "  Decompressing..."
-        mv "$outfile" "$outfile.gz"
-        gunzip "$outfile.gz"
-    fi
-    # Validate: should contain tab-separated GFF lines
-    if head -20 "$outfile" | grep -q "^<"; then
-        echo "  ✗ Download failed — received HTML instead of GFF. Check URL."
-        rm -f "$outfile"
+    local tmpfile="$outfile.tmp"
+    if ! curl -fL -o "$tmpfile" "$url"; then
+        echo "  ✗ Download failed. URL may have changed."
+        echo "    Manual download instructions in the error message below."
+        rm -f "$tmpfile"
         return 1
     fi
+
+    # QTLdb may return gzipped files — decompress if needed
+    if head -c 2 "$tmpfile" | od -An -tx1 | grep -q "1f 8b"; then
+        echo "  Decompressing gzipped file..."
+        mv "$tmpfile" "$tmpfile.gz"
+        gunzip "$tmpfile.gz"
+    fi
+
+    # Validate: should be tab-separated, not HTML
+    if head -5 "$tmpfile" | grep -qi "<!DOCTYPE\|<html"; then
+        echo "  ✗ Got HTML instead of GFF data. URL may have changed."
+        rm -f "$tmpfile"
+        return 1
+    fi
+
+    mv "$tmpfile" "$outfile"
     echo "  ✓ $outfile"
 }
 
 echo "=== Downloading QTL data from Animal QTLdb ==="
 
 # Sheep QTLs — GFF from Animal QTLdb (OAR_rambo2 build, release 58)
-# NOTE: QTLdb uses tokenized URLs that may change with new releases.
+# NOTE: QTLdb uses tokenized URLs that change with new releases.
 # If download fails, visit https://www.animalgenome.org/QTLdb/OA/index
-# and download the GFF file for OAR_rambo2 manually to data/qtl/sheep/sheep_qtldb.gff
+# and download the GFF file manually to data/qtl/sheep/sheep_qtldb.gff
 download_qtl "sheep" \
     "https://www.animalgenome.org/cgi-bin/QTLdb/OA/download?f=Y660yclWWas47TpwiMBql&c=26090410" \
     "sheep_qtldb.gff"

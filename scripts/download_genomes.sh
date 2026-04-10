@@ -4,37 +4,46 @@ set -euo pipefail
 DATA_DIR="${1:-data}"
 
 download_genome() {
-    local species="$1" url="$2" filename="$3"
+    local species="$1" accession="$2"
     local outdir="$DATA_DIR/genome/$species"
-    local outfile="$outdir/$filename"
+    local outfile="$outdir/$species.fa"
 
     mkdir -p "$outdir"
     if [ -f "$outfile" ]; then
         echo "  ✓ $outfile already exists, skipping"
         return
     fi
-    echo "  Downloading $species genome..."
-    curl -fL -o "$outfile.gz" "$url"
-    # Validate: must be gzip
-    if ! file "$outfile.gz" | grep -q "gzip"; then
-        echo "  ✗ Download failed — not a valid gzip file. Check URL."
-        rm -f "$outfile.gz"
+
+    echo "  Downloading $species genome ($accession) via NCBI datasets..."
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    datasets download genome accession "$accession" \
+        --include genome \
+        --filename "$tmpdir/genome.zip"
+
+    unzip -q -o "$tmpdir/genome.zip" -d "$tmpdir"
+    # Find the FASTA file in the extracted data
+    local fasta
+    fasta=$(find "$tmpdir/ncbi_dataset/data" -name "*.fna" | head -1)
+
+    if [ -z "$fasta" ]; then
+        echo "  ✗ No FASTA found in download"
+        rm -rf "$tmpdir"
         return 1
     fi
-    gunzip "$outfile.gz"
+
+    cp "$fasta" "$outfile"
+    rm -rf "$tmpdir"
     echo "  ✓ $outfile"
 }
 
 echo "=== Downloading reference genomes ==="
 
 # Sheep — ARS-UI_Ramb_v3.0 (latest NCBI reference)
-download_genome "sheep" \
-    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/772/045/GCF_016772045.2_ARS-UI_Ramb_v3.0/GCF_016772045.2_ARS-UI_Ramb_v3.0_genomic.fna.gz" \
-    "sheep.fa"
+download_genome "sheep" "GCF_016772045.2"
 
 # Goat — ARS1.2
-download_genome "goat" \
-    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/001/704/415/GCF_001704415.2_ARS1.2/GCF_001704415.2_ARS1.2_genomic.fna.gz" \
-    "goat.fa"
+download_genome "goat" "GCF_001704415.2"
 
 echo "=== Genome downloads complete ==="
