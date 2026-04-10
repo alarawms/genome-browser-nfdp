@@ -14,19 +14,25 @@ download_genome() {
         return
     fi
     echo "  Downloading $species genome..."
-    curl -L -o "$outfile.gz" "$url"
+    curl -fL -o "$outfile.gz" "$url"
+    # Validate: must be gzip
+    if ! file "$outfile.gz" | grep -q "gzip"; then
+        echo "  ✗ Download failed — not a valid gzip file. Check URL."
+        rm -f "$outfile.gz"
+        return 1
+    fi
     gunzip "$outfile.gz"
     echo "  ✓ $outfile"
 }
 
 echo "=== Downloading reference genomes ==="
 
-# Sheep — Oar_rambouillet_v1.0
+# Sheep — ARS-UI_Ramb_v2.0 (current Ensembl/NCBI reference)
 download_genome "sheep" \
-    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/002/742/125/GCF_002742125.1_Oar_rambouillet_v1.0/GCF_002742125.1_Oar_rambouillet_v1.0_genomic.fna.gz" \
+    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/772/045/GCF_016772045.2_ARS-UI_Ramb_v2.0/GCF_016772045.2_ARS-UI_Ramb_v2.0_genomic.fna.gz" \
     "sheep.fa"
 
-# Goat — ARS1 / CHIR_1.0
+# Goat — ARS1.2
 download_genome "goat" \
     "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/001/704/415/GCF_001704415.2_ARS1.2/GCF_001704415.2_ARS1.2_genomic.fna.gz" \
     "goat.fa"

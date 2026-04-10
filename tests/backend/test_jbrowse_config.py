@@ -5,7 +5,7 @@ BASE_URL = "http://localhost:8000/data"
 
 def test_sheep_assembly_config():
     config = make_assembly_config("sheep", BASE_URL)
-    assert config["name"] == "Oar_rambouillet_v1.0"
+    assert config["name"] == "ARS-UI_Ramb_v2.0"
     assert "sequence" in config
     adapter = config["sequence"]["adapter"]
     assert adapter["type"] == "BgzipFastaAdapter"

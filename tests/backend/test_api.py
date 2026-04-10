@@ -72,7 +72,7 @@ def test_jbrowse_config(client):
     config = resp.json()
     assert "assembly" in config
     assert "tracks" in config
-    assert config["assembly"]["name"] == "Oar_rambouillet_v1.0"
+    assert config["assembly"]["name"] == "ARS-UI_Ramb_v2.0"
 
 
 def test_unknown_species_404(client):

@@ -12,7 +12,7 @@ _BUILTIN_SPECIES = [
         id="sheep",
         name="Sheep",
         scientific_name="Ovis aries",
-        assembly="Oar_rambouillet_v1.0",
+        assembly="ARS-UI_Ramb_v2.0",
         chromosome_count=27,
     ),
     Species(
