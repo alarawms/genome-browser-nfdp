@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 from src.backend.jbrowse_config import make_assembly_config, make_track_configs, get_species_meta
 from src.backend.models import Species
@@ -49,9 +49,10 @@ def list_species() -> list[Species]:
 
 
 @router.get("/{species_id}/jbrowse-config")
-def jbrowse_config(species_id: str, request: Request):
+def jbrowse_config(species_id: str):
     data_dir = os.environ.get("DATA_DIR", "data")
-    base_url = str(request.base_url).rstrip("/") + "/data"
+    # Use relative URLs so JBrowse requests go through the frontend proxy
+    base_url = "/data"
     assembly = make_assembly_config(species_id, base_url, data_dir)
     tracks = make_track_configs(species_id, base_url, data_dir)
     return {"assembly": assembly, "tracks": tracks}
