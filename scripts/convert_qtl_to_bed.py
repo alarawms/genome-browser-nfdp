@@ -50,13 +50,18 @@ def parse_qtldb_gff(gff_path: Path, species_id: str) -> list[dict]:
             # Normalize chromosome name — strip "chr" prefix if present
             chrom = re.sub(r"^chr", "", chrom, flags=re.IGNORECASE)
 
+            start = max(0, start)
+            # Skip records where start >= end (invalid coordinates in QTLdb)
+            if start >= end:
+                continue
+
             qtl_id = f"{species_id}_qtl_{len(records):06d}"
             records.append(
                 {
                     "id": qtl_id,
                     "species_id": species_id,
                     "chromosome": chrom,
-                    "start": max(0, start),
+                    "start": start,
                     "end": end,
                     "trait": trait_name,
                     "trait_category": trait_category,
