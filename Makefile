@@ -69,10 +69,10 @@ endif
 ## === Development ===
 
 dev-backend:
-	DATA_DIR=$(DATA_DIR) .venv/bin/python -m uvicorn src.backend.main:app --reload --port 8880
+	DATA_DIR=$(DATA_DIR) .venv/bin/python -m uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8880
 
 dev-frontend:
-	cd src/frontend && npm run dev
+	cd src/frontend && npm install && npm run dev -- --host 0.0.0.0
 
 dev:
 	@echo "Run in two terminals:"
