@@ -21,7 +21,10 @@ setup:
 ## === Data Pipeline ===
 
 data: download-genomes download-annotations download-qtls index-genomes convert-qtls prepare-tracks
-	@echo "✓ All data ready"
+	@echo ""
+	@echo "✓ Genomes and annotations ready."
+	@echo "  If QTL data was missing, the browser still works (no QTL track)."
+	@echo "  See above for manual QTL download instructions."
 
 data-docker:
 	docker build -t genome-browser-data -f Dockerfile.data-pipeline .

@@ -3,58 +3,64 @@ set -euo pipefail
 
 DATA_DIR="${1:-data}"
 
-download_qtl() {
-    local species="$1" url="$2" filename="$3"
+check_qtl() {
+    local species="$1" filename="$2"
     local outdir="$DATA_DIR/qtl/$species"
     local outfile="$outdir/$filename"
 
     mkdir -p "$outdir"
     if [ -f "$outfile" ]; then
-        echo "  ✓ $outfile already exists, skipping"
-        return
+        # Validate it's not HTML
+        if head -5 "$outfile" | grep -qi "<!DOCTYPE\|<html"; then
+            echo "  ✗ $outfile is HTML (bad previous download), removing"
+            rm -f "$outfile"
+        else
+            echo "  ✓ $outfile exists"
+            return 0
+        fi
     fi
 
-    echo "  Downloading $species QTL data..."
-    local tmpfile="$outfile.tmp"
-    if ! curl -fL -o "$tmpfile" "$url"; then
-        echo "  ✗ Download failed. URL may have changed."
-        echo "    Manual download instructions in the error message below."
-        rm -f "$tmpfile"
-        return 1
-    fi
-
-    # QTLdb may return gzipped files — decompress if needed
-    if head -c 2 "$tmpfile" | od -An -tx1 | grep -q "1f 8b"; then
-        echo "  Decompressing gzipped file..."
-        mv "$tmpfile" "$tmpfile.gz"
-        gunzip "$tmpfile.gz"
-    fi
-
-    # Validate: should be tab-separated, not HTML
-    if head -5 "$tmpfile" | grep -qi "<!DOCTYPE\|<html"; then
-        echo "  ✗ Got HTML instead of GFF data. URL may have changed."
-        rm -f "$tmpfile"
-        return 1
-    fi
-
-    mv "$tmpfile" "$outfile"
-    echo "  ✓ $outfile"
+    echo "  ⚠ $outfile not found"
+    return 1
 }
 
-echo "=== Downloading QTL data from Animal QTLdb ==="
+echo "=== Checking QTL data from Animal QTLdb ==="
+echo ""
+echo "  Animal QTLdb requires terms acceptance in a browser."
+echo "  Automated download is not supported."
+echo ""
 
-# Sheep QTLs — GFF from Animal QTLdb (OAR_rambo2 build, release 58)
-# NOTE: QTLdb uses tokenized URLs that change with new releases.
-# If download fails, visit https://www.animalgenome.org/QTLdb/OA/index
-# and download the GFF file manually to data/qtl/sheep/sheep_qtldb.gff
-download_qtl "sheep" \
-    "https://www.animalgenome.org/cgi-bin/QTLdb/OA/download?f=Y660yclWWas47TpwiMBql&c=26090410" \
-    "sheep_qtldb.gff"
+MISSING=0
 
-# Goat QTLs — GFF from Animal QTLdb (CHIR_ARS1 build, release 58)
-# If download fails, visit https://www.animalgenome.org/QTLdb/CH/index
-download_qtl "goat" \
-    "https://www.animalgenome.org/cgi-bin/QTLdb/CH/download?f=ZyQN21BMus0RqtabmIOuJ&c=26090410" \
-    "goat_qtldb.gff"
+if ! check_qtl "sheep" "sheep_qtldb.gff"; then
+    MISSING=1
+    echo ""
+    echo "  To download sheep QTLs (OAR_rambo3 build):"
+    echo "    1. Open: https://www.animalgenome.org/cgi-bin/QTLdb/OA/index"
+    echo "    2. Scroll to 'Downloads' → 'Maps view' → OAR_rambo3 → GFF"
+    echo "    3. Accept terms, save the file"
+    echo "    4. If gzipped, decompress: gunzip <filename>.gff.gz"
+    echo "    5. Move to: $DATA_DIR/qtl/sheep/sheep_qtldb.gff"
+    echo ""
+fi
 
-echo "=== QTL downloads complete ==="
+if ! check_qtl "goat" "goat_qtldb.gff"; then
+    MISSING=1
+    echo ""
+    echo "  To download goat QTLs (CHIR_ARS1 build):"
+    echo "    1. Open: https://www.animalgenome.org/cgi-bin/QTLdb/CH/index"
+    echo "    2. Scroll to 'Downloads' → 'Maps view' → CHIR_ARS1 → GFF"
+    echo "    3. Accept terms, save the file"
+    echo "    4. If gzipped, decompress: gunzip <filename>.gff.gz"
+    echo "    5. Move to: $DATA_DIR/qtl/goat/goat_qtldb.gff"
+    echo ""
+fi
+
+if [ "$MISSING" -eq 1 ]; then
+    echo "  ⚠ QTL data missing — browser will work without it (no QTL track)."
+    echo "  Download manually when ready, then re-run: make convert-qtls prepare-tracks"
+else
+    echo "  ✓ All QTL data present"
+fi
+
+echo "=== QTL check complete ==="
