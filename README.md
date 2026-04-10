@@ -43,7 +43,7 @@ React + TypeScript + Tailwind     FastAPI + pandas
 
 | Species | Assembly | Annotations | QTLs |
 |---------|----------|-------------|------|
-| Sheep   | ARS-UI_Ramb_v2.0 (NCBI) | Ensembl GFF3 | Animal QTLdb |
+| Sheep   | ARS-UI_Ramb_v3.0 (NCBI) | Ensembl GFF3 | Animal QTLdb |
 | Goat    | ARS1.2 (NCBI) | Ensembl GFF3 | Animal QTLdb |
 
 ## Add a Custom Genome

@@ -26,9 +26,9 @@ download_annotation() {
 
 echo "=== Downloading gene annotations ==="
 
-# Sheep — Ensembl GFF3 (ARS-UI_Ramb_v2.0, release 115)
+# Sheep — NCBI GFF (ARS-UI_Ramb_v3.0)
 download_annotation "sheep" \
-    "https://ftp.ensembl.org/pub/current_gff3/ovis_aries_rambouillet/Ovis_aries_rambouillet.ARS-UI_Ramb_v2.0.115.gff3.gz" \
+    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/772/045/GCF_016772045.2_ARS-UI_Ramb_v3.0/GCF_016772045.2_ARS-UI_Ramb_v3.0_genomic.gff.gz" \
     "sheep.gff3.gz"
 
 # Goat — Ensembl GFF3 (ARS1, release 115)

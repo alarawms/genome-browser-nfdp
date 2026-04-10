@@ -27,9 +27,9 @@ download_genome() {
 
 echo "=== Downloading reference genomes ==="
 
-# Sheep — ARS-UI_Ramb_v2.0 (current Ensembl/NCBI reference)
+# Sheep — ARS-UI_Ramb_v3.0 (latest NCBI reference)
 download_genome "sheep" \
-    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/772/045/GCF_016772045.2_ARS-UI_Ramb_v2.0/GCF_016772045.2_ARS-UI_Ramb_v2.0_genomic.fna.gz" \
+    "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/016/772/045/GCF_016772045.2_ARS-UI_Ramb_v3.0/GCF_016772045.2_ARS-UI_Ramb_v3.0_genomic.fna.gz" \
     "sheep.fa"
 
 # Goat — ARS1.2

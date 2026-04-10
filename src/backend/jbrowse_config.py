@@ -4,7 +4,7 @@ from pathlib import Path
 # Built-in species (always available)
 _BUILTIN_SPECIES_META = {
     "sheep": {
-        "assembly_name": "ARS-UI_Ramb_v2.0",
+        "assembly_name": "ARS-UI_Ramb_v3.0",
         "fasta_file": "sheep.fa.gz",
         "gff_file": "sheep.sorted.gff3.gz",
         "qtl_bed_file": "sheep_qtls.sorted.bed.gz",
