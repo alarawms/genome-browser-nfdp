@@ -28,7 +28,7 @@ data: download-genomes download-annotations download-qtls index-genomes convert-
 
 data-docker:
 	docker build -t genome-browser-data -f Dockerfile.data-pipeline .
-	docker run --rm -v $(CURDIR)/$(DATA_DIR):/data genome-browser-data
+	docker run --rm --user $(shell id -u):$(shell id -g) -v $(CURDIR)/$(DATA_DIR):/data genome-browser-data
 
 download-genomes:
 	bash scripts/download_genomes.sh $(DATA_DIR)
