@@ -1,0 +1,220 @@
+{
+  "cmo": {
+    "blood albumin level": {
+      "id": "CMO:0000549",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000549",
+      "label": "blood albumin level"
+    },
+    "blood sodium level": {
+      "id": "CMO:0000499",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000499",
+      "label": "blood sodium level"
+    },
+    "body weight": {
+      "id": "CMO:0000012",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000012",
+      "label": "body weight"
+    },
+    "bone mineral density": {
+      "id": "CMO:0001226",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001226",
+      "label": "bone mineral density"
+    },
+    "calculated sperm count": {
+      "id": "CMO:0001608",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001608",
+      "label": "calculated sperm count"
+    },
+    "coat/hair color measurement": {
+      "id": "CMO:0001808",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001808",
+      "label": "coat/hair color measurement"
+    },
+    "fecal parasite egg count": {
+      "id": "CMO:0002544",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0002544",
+      "label": "fecal parasite egg count"
+    },
+    "forelimb length": {
+      "id": "CMO:0000188",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000188",
+      "label": "forelimb length"
+    },
+    "hind limb length": {
+      "id": "CMO:0000189",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000189",
+      "label": "hind limb length"
+    },
+    "milk casein percentage": {
+      "id": "CMO:0000801",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000801",
+      "label": "milk casein percentage"
+    },
+    "milk fat percentage": {
+      "id": "CMO:0000816",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000816",
+      "label": "milk fat percentage"
+    },
+    "milk fat yield": {
+      "id": "CMO:0000814",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000814",
+      "label": "milk fat yield"
+    },
+    "milk protein percentage": {
+      "id": "CMO:0000795",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000795",
+      "label": "milk protein percentage"
+    },
+    "milk protein yield": {
+      "id": "CMO:0000796",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000796",
+      "label": "milk protein yield"
+    },
+    "milk yield": {
+      "id": "CMO:0001306",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001306",
+      "label": "milk yield"
+    },
+    "motile sperm count to total sperm count ratio": {
+      "id": "CMO:0000638",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0000638",
+      "label": "motile sperm count to total sperm count ratio"
+    },
+    "number of offspring": {
+      "id": "CMO:0001374",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001374",
+      "label": "number of offspring"
+    },
+    "semen volume": {
+      "id": "CMO:0001354",
+      "iri": "http://purl.obolibrary.org/obo/CMO_0001354",
+      "label": "semen volume"
+    }
+  },
+  "pto": {
+    "clean fleece weight": null,
+    "dressed carcass bone percentage": null,
+    "meat pH": null,
+    "milk casein content": null,
+    "milk coagulation time": null,
+    "milk energy content": null,
+    "milk fat content": null,
+    "milk fat yield": null,
+    "milk lactose content": null,
+    "milk protein content": null,
+    "milk protein yield": null,
+    "wool fiber diameter": null
+  },
+  "vto": {
+    "blood albumin amount": {
+      "id": "VT:0000199",
+      "iri": "http://purl.obolibrary.org/obo/VT_0000199",
+      "label": "blood albumin amount"
+    },
+    "blood sodium amount": {
+      "id": "VT:0001776",
+      "iri": "http://purl.obolibrary.org/obo/VT_0001776",
+      "label": "blood sodium amount"
+    },
+    "body conformation trait": {
+      "id": "VT:1000000",
+      "iri": "http://purl.obolibrary.org/obo/VT_1000000",
+      "label": "body conformation trait"
+    },
+    "body mass": {
+      "id": "VT:0001259",
+      "iri": "http://purl.obolibrary.org/obo/VT_0001259",
+      "label": "body mass"
+    },
+    "bone mineral mass": {
+      "id": "VT:0005007",
+      "iri": "http://purl.obolibrary.org/obo/VT_0005007",
+      "label": "bone mineral mass"
+    },
+    "coat/hair pigmentation trait": {
+      "id": "VT:0010463",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010463",
+      "label": "coat/hair pigmentation trait"
+    },
+    "female fertility trait": {
+      "id": "VT:0001923",
+      "iri": "http://purl.obolibrary.org/obo/VT_0001923",
+      "label": "female fertility trait"
+    },
+    "fertility trait": {
+      "id": "VT:0010464",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010464",
+      "label": "fertility trait"
+    },
+    "forelimb length": {
+      "id": "VT:0010023",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010023",
+      "label": "forelimb length"
+    },
+    "hindlimb length": {
+      "id": "VT:0010024",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010024",
+      "label": "hindlimb length"
+    },
+    "jaw morphology trait": {
+      "id": "VT:0000454",
+      "iri": "http://purl.obolibrary.org/obo/VT_0000454",
+      "label": "jaw morphology trait"
+    },
+    "metacarpus morphology trait": {
+      "id": "VT:0003073",
+      "iri": "http://purl.obolibrary.org/obo/VT_0003073",
+      "label": "metacarpus morphology trait"
+    },
+    "milk amount": {
+      "id": "VT:0015043",
+      "iri": "http://purl.obolibrary.org/obo/VT_0015043",
+      "label": "milk amount"
+    },
+    "milk casein amount": {
+      "id": "VT:0010280",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010280",
+      "label": "milk casein amount"
+    },
+    "milk lactose amount": {
+      "id": "VT:0010287",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010287",
+      "label": "milk lactose amount"
+    },
+    "milk protein amount": {
+      "id": "VT:1000165",
+      "iri": "http://purl.obolibrary.org/obo/VT_1000165",
+      "label": "milk protein amount"
+    },
+    "milk total fat amount": {
+      "id": "VT:1000161",
+      "iri": "http://purl.obolibrary.org/obo/VT_1000161",
+      "label": "milk total fat amount"
+    },
+    "muscle pH regulation trait": {
+      "id": "VT:1000685",
+      "iri": "http://purl.obolibrary.org/obo/VT_1000685",
+      "label": "muscle pH regulation trait"
+    },
+    "offspring quantity": {
+      "id": "VT:1000189",
+      "iri": "http://purl.obolibrary.org/obo/VT_1000189",
+      "label": "offspring quantity"
+    },
+    "response to parasitic infection trait": {
+      "id": "VT:0010437",
+      "iri": "http://purl.obolibrary.org/obo/VT_0010437",
+      "label": "response to parasitic infection trait"
+    },
+    "sperm motility trait": {
+      "id": "VT:0002674",
+      "iri": "http://purl.obolibrary.org/obo/VT_0002674",
+      "label": "sperm motility trait"
+    },
+    "sperm quantity": {
+      "id": "VT:0002673",
+      "iri": "http://purl.obolibrary.org/obo/VT_0002673",
+      "label": "sperm quantity"
+    }
+  }
+}
