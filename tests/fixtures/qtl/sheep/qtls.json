@@ -9,7 +9,16 @@
     "trait_category": "Milk",
     "score": 4.2,
     "pubmed_id": "28374882",
-    "source": "Animal QTLdb"
+    "source": "Animal QTLdb",
+    "breed": "Merino",
+    "vto_id": "VT:0010011",
+    "cmo_id": "CMO:0001306",
+    "flank_marker": "rs12345",
+    "p_value": "2.85E-4",
+    "overlapping_gene_count": 1,
+    "overlapping_genes": [
+      {"id": "MSTN", "name": "MSTN", "symbol": "MSTN", "description": "myostatin", "ncbi_gene_id": "443449", "biotype": "protein_coding", "start": 45000000, "end": 47000000}
+    ]
   },
   {
     "id": "sheep_qtl_002",
@@ -21,7 +30,14 @@
     "trait_category": "Growth",
     "score": 3.8,
     "pubmed_id": "31205743",
-    "source": "Animal QTLdb"
+    "source": "Animal QTLdb",
+    "breed": null,
+    "vto_id": null,
+    "cmo_id": null,
+    "flank_marker": null,
+    "p_value": null,
+    "overlapping_gene_count": 0,
+    "overlapping_genes": []
   },
   {
     "id": "sheep_qtl_003",

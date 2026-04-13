@@ -79,3 +79,66 @@ def test_unknown_species_404(client):
     resp = client.get("/api/species/unknown/qtls")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# --- Chromosome overview endpoints ------------------------------------------
+
+def test_list_chromosomes_sheep_has_fai(client):
+    """Sheep fixture has a .fai file — should return both chromosomes."""
+    resp = client.get("/api/species/sheep/chromosomes")
+    assert resp.status_code == 200
+    chroms = resp.json()
+    names = {c["name"] for c in chroms}
+    assert {"1", "3"}.issubset(names)
+    by_name = {c["name"]: c for c in chroms}
+    assert by_name["1"]["length"] == 100_000_000
+    # QTLs from qtl fixture: 2 on chr1, 1 on chr3
+    assert by_name["1"]["qtl_count"] == 2
+    assert by_name["3"]["qtl_count"] == 1
+    # Genes from gff fixture: 3 on chr1, 1 on chr3
+    assert by_name["1"]["gene_count"] == 3
+    assert by_name["3"]["gene_count"] == 1
+
+
+def test_list_chromosomes_empty_for_species_without_fai(client):
+    """Goat has no FASTA fixture — returns an empty list, not a 500."""
+    resp = client.get("/api/species/goat/chromosomes")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_chromosome_summary_returns_bins_and_qtls(client):
+    resp = client.get("/api/species/sheep/chromosome/1/summary?bins=10")
+    assert resp.status_code == 200
+    summary = resp.json()
+    assert summary["chromosome"] == "1"
+    assert summary["length"] == 100_000_000
+    assert len(summary["gene_bins"]) == 10
+    # 3 gene records on chr1 of fixture, total counts should equal
+    assert sum(b["count"] for b in summary["gene_bins"]) == 3
+    # MSTN at 45-47M and LEP at 52-54M should appear as symbols somewhere
+    all_symbols = [s for b in summary["gene_bins"] for s in b["symbols"]]
+    assert "MSTN" in all_symbols
+    assert "LEP" in all_symbols
+    # LOC12345 is not a curated symbol; should NOT be included
+    assert "LOC12345" not in all_symbols
+    # 2 QTLs on chr1
+    assert len(summary["qtls"]) == 2
+
+
+def test_chromosome_summary_404_for_unknown_chrom(client):
+    resp = client.get("/api/species/sheep/chromosome/NOTREAL/summary")
+    assert resp.status_code == 404
+
+
+# --- Enriched QTL fields -----------------------------------------------------
+
+def test_qtl_shape_includes_optional_enrichment_fields(client):
+    """The enriched fields may be null but must be serializable (NaN fix)."""
+    resp = client.get("/api/species/sheep/qtls")
+    assert resp.status_code == 200
+    for qtl in resp.json():
+        # New optional fields should be present (possibly None)
+        for k in ("breed", "vto_id", "cmo_id", "flank_marker", "p_value",
+                  "overlapping_genes", "overlapping_gene_count"):
+            assert k in qtl, f"missing field {k} in QTL record"

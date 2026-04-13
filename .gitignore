@@ -45,3 +45,4 @@ autonomous/
 
 # Git worktrees
 .worktrees/
+*.tsbuildinfo

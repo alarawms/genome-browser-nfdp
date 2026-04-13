@@ -1,8 +1,8 @@
 DATA_DIR ?= data
 
 .PHONY: data data-docker process-docker download-genomes download-annotations download-qtls \
-        index-genomes convert-qtls prepare-tracks \
-        setup add-genome dev-backend dev-frontend dev clean
+        index-genomes convert-qtls prepare-tracks enrich-ontologies \
+        setup add-genome build-custom-animal dev-backend dev-frontend dev test clean
 
 ## === Setup ===
 
@@ -53,6 +53,13 @@ convert-qtls: download-qtls
 prepare-tracks: download-annotations convert-qtls
 	bash scripts/prepare_tracks.sh $(DATA_DIR)
 
+## Enrich every qtls.json under $(DATA_DIR)/qtl/ with ontology term IDs.
+## Requires network (EBI OLS); BIOPORTAL_API_KEY env enables LPT lookups too.
+enrich-ontologies:
+	@for f in $(DATA_DIR)/qtl/*/qtls.json; do \
+		[ -f "$$f" ] && python3 scripts/enrich_qtl_ontologies.py "$$f"; \
+	done
+
 ## === Add Custom Genome ===
 
 add-genome:
@@ -65,6 +72,26 @@ ifndef ID
 	@exit 1
 endif
 	bash scripts/add_genome.sh "$(ID)" "$(FASTA)" "$(or $(ASSEMBLY),$(ID))" "$(or $(NAME),$(ID))" "$(or $(SCIENTIFIC),)"
+
+## Full per-animal track build: lift QTLs from DONOR, index GFF, compute QTL-gene
+## overlap, run ontology enrichment. Requires paftools.js + bgzip + tabix on PATH.
+##
+## Usage:
+##   make build-custom-animal ID=najdi DONOR=sheep PAF=/path/alignment.paf GFF=/path/liftoff.gff3
+build-custom-animal:
+ifndef ID
+	@echo "Error: ID is required"; @exit 1
+endif
+ifndef DONOR
+	@echo "Error: DONOR is required (species to lift QTLs from, e.g. sheep)"; @exit 1
+endif
+ifndef PAF
+	@echo "Error: PAF is required (minimap2 alignment, query=donor target=this animal)"; @exit 1
+endif
+ifndef GFF
+	@echo "Error: GFF is required (liftoff-produced gene annotation in target coords)"; @exit 1
+endif
+	bash scripts/build_custom_animal_tracks.sh "$(ID)" "$(DONOR)" "$(PAF)" "$(GFF)"
 
 ## === Development ===
 

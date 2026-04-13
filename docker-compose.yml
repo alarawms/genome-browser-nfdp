@@ -1,22 +1,21 @@
-version: "3.8"
-
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8880}:8880"
     volumes:
       - ./data:/app/data:ro
     environment:
       - DATA_DIR=/app/data
+      - BIOPORTAL_API_KEY=${BIOPORTAL_API_KEY:-}
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3003}:80"
     depends_on:
       - backend
