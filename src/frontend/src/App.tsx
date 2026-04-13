@@ -4,6 +4,7 @@ import SpeciesSelector from "./components/SpeciesSelector";
 import QtlExplorer from "./components/QtlExplorer";
 import GenomeBrowser from "./components/GenomeBrowser";
 import SearchBar from "./components/SearchBar";
+import ChromosomeOverview from "./components/ChromosomeOverview";
 
 export default function App() {
   const { species, selectedId, select, loading } = useSpecies();
@@ -55,9 +56,17 @@ export default function App() {
           />
         </aside>
 
-        {/* Genome Browser */}
-        <main className="flex-1">
-          <GenomeBrowser speciesId={selectedId} location={location} />
+        {/* Genome Browser (with chromosome overview on top) */}
+        <main className="flex flex-1 flex-col overflow-hidden">
+          <ChromosomeOverview
+            speciesId={selectedId}
+            onNavigate={(chr, start, end) =>
+              setLocation({ chromosome: chr, start, end })
+            }
+          />
+          <div className="flex-1 overflow-hidden">
+            <GenomeBrowser speciesId={selectedId} location={location} />
+          </div>
         </main>
       </div>
     </div>
