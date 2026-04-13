@@ -1,0 +1,22 @@
+{
+  "najdi": {
+    "assembly_name": "Najdi_T2T_NLFDP1268_v1.0",
+    "fasta_file": "najdi.fa.gz",
+    "gff_file": "najdi.liftoff_rambouillet.sorted.gff3.gz",
+    "gff_track_label": "Genes (Rambouillet v3)",
+    "extra_gene_tracks": [
+      {
+        "file": "najdi.liftoff_hu.sorted.gff3.gz",
+        "label": "Genes (Hu T2T v1)"
+      },
+      {
+        "file": "najdi.liftoff_texel.sorted.gff3.gz",
+        "label": "Genes (Texel v4)"
+      }
+    ],
+    "qtl_bed_file": "najdi_qtls.sorted.bed.gz",
+    "name": "Najdi Sheep",
+    "scientific_name": "Ovis aries",
+    "chromosome_count": 28
+  }
+}

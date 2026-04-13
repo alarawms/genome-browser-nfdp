@@ -51,27 +51,46 @@ def make_assembly_config(species_id: str, base_url: str, data_dir: str | None = 
     }
 
 
+def _gene_track(species_id: str, assembly_name: str, ann_url: str,
+                file_name: str, track_id: str, label: str) -> dict:
+    return {
+        "type": "FeatureTrack",
+        "trackId": track_id,
+        "name": label,
+        "assemblyNames": [assembly_name],
+        "adapter": {
+            "type": "Gff3TabixAdapter",
+            "gffGzLocation": {"uri": f"{ann_url}/{file_name}"},
+            "index": {
+                "location": {"uri": f"{ann_url}/{file_name}.tbi"},
+            },
+        },
+    }
+
+
 def make_track_configs(species_id: str, base_url: str, data_dir: str | None = None) -> list[dict]:
     meta = _load_species_meta(data_dir)[species_id]
     assembly_name = meta["assembly_name"]
+    ann_url = f"{base_url}/annotations/{species_id}"
     tracks = []
 
-    # Gene annotations (optional — de novo genomes may not have these)
+    # Primary gene annotation track (the one the QtlExplorer sidebar draws from)
     if meta.get("gff_file"):
-        ann_url = f"{base_url}/annotations/{species_id}"
-        tracks.append({
-            "type": "FeatureTrack",
-            "trackId": f"{species_id}-genes",
-            "name": "Gene Annotations",
-            "assemblyNames": [assembly_name],
-            "adapter": {
-                "type": "Gff3TabixAdapter",
-                "gffGzLocation": {"uri": f"{ann_url}/{meta['gff_file']}"},
-                "index": {
-                    "location": {"uri": f"{ann_url}/{meta['gff_file']}.tbi"},
-                },
-            },
-        })
+        tracks.append(_gene_track(
+            species_id, assembly_name, ann_url,
+            file_name=meta["gff_file"],
+            track_id=f"{species_id}-genes",
+            label=meta.get("gff_track_label", "Gene Annotations"),
+        ))
+
+    # Additional gene tracks (e.g. alternative reference liftoffs for comparison)
+    for i, entry in enumerate(meta.get("extra_gene_tracks") or []):
+        tracks.append(_gene_track(
+            species_id, assembly_name, ann_url,
+            file_name=entry["file"],
+            track_id=f"{species_id}-genes-{i+2}",   # -genes is #1; extras start at #2
+            label=entry.get("label", f"Genes (extra {i+1})"),
+        ))
 
     # QTL track (optional)
     if meta.get("qtl_bed_file"):
