@@ -29,8 +29,14 @@ class DataStore:
         # species_id -> chromosome -> list[gene dict {start, end, symbol, name,
         #   description, ncbi_gene_id}], sorted by start
         self._genes: dict[str, dict[str, list[dict]]] = {}
+        # species_id -> track_id -> chromosome -> [gene dicts]; loaded lazily
+        # to keep startup memory bounded if a species has many tracks.
+        self._track_genes: dict[str, dict[str, dict[str, list[dict]]]] = {}
         # species_id -> chromosome -> length
         self._chrom_lengths: dict[str, dict[str, int]] = {}
+        # species_id -> comparison.json contents (precomputed by
+        # scripts/compare_annotations.py, loaded on first access)
+        self._annotation_comparisons: dict[str, dict] = {}
         self._load_all()
 
     def _load_all(self):
@@ -143,8 +149,96 @@ class DataStore:
         result.sort(key=sort_key)
         return result
 
-    def chromosome_summary(self, species_id: str, chrom: str, bins: int = 200) -> dict | None:
-        """Return binned gene density + QTL list for a single chromosome."""
+    def _genes_for_track(self, species_id: str, track_id: str | None) -> dict[str, list[dict]]:
+        """Return gene-by-chromosome map for the requested track.
+        If track_id is None or matches the primary, returns the cached self._genes.
+        Otherwise lazy-loads the requested extra track's GFF on first access.
+        """
+        if not track_id:
+            return self._genes.get(species_id, {})
+        # Already loaded in the per-track cache?
+        cached = self._track_genes.setdefault(species_id, {}).get(track_id)
+        if cached is not None:
+            return cached
+        # Locate the file in genomes.json (or builtin) and load
+        from src.backend.jbrowse_config import get_species_meta
+        from collections import defaultdict
+        meta = get_species_meta(str(self.data_dir)).get(species_id) or {}
+        # Try primary first
+        candidates: list[str] = []
+        if meta.get("gff_file"):
+            candidates.append(meta["gff_file"])
+        for ex in meta.get("extra_gene_tracks") or []:
+            candidates.append(ex["file"])
+        # Match by track_id substring/derived key
+        target_file = None
+        for fname in candidates:
+            tid = self._derive_track_id(species_id, fname)
+            if tid == track_id:
+                target_file = fname
+                break
+        if not target_file:
+            self._track_genes[species_id][track_id] = {}
+            return {}
+        gff = self.data_dir / "annotations" / species_id / target_file
+        # If this happens to be the primary, reuse the cached parse
+        if meta.get("gff_file") == target_file and species_id in self._genes:
+            self._track_genes[species_id][track_id] = self._genes[species_id]
+            return self._genes[species_id]
+        # Otherwise stream-parse this GFF
+        genes_by_chrom: dict[str, list[dict]] = defaultdict(list)
+        if gff.exists():
+            opener = gzip.open if str(gff).endswith(".gz") else open
+            with opener(gff, "rt") as f:
+                for line in f:
+                    if line.startswith("#") or not line.strip():
+                        continue
+                    parts = line.rstrip("\n").split("\t")
+                    if len(parts) < 9 or parts[2] != "gene":
+                        continue
+                    try:
+                        start = int(parts[3]) - 1
+                        end = int(parts[4])
+                    except ValueError:
+                        continue
+                    name = description = dbxref = None
+                    for a in parts[8].split(";"):
+                        if a.startswith("Name="):
+                            name = a[5:]
+                        elif a.startswith("description="):
+                            description = a[12:].replace("%20", " ").replace("%2C", ",")
+                        elif a.startswith("Dbxref="):
+                            dbxref = a[7:]
+                    symbol = name if name and not name.startswith("LOC") else None
+                    m = _GENEID_RE.search(dbxref or "")
+                    genes_by_chrom[parts[0]].append({
+                        "start": start, "end": end, "symbol": symbol,
+                        "name": name or "", "description": description,
+                        "ncbi_gene_id": m.group(1) if m else None,
+                    })
+            for chrom in genes_by_chrom:
+                genes_by_chrom[chrom].sort(key=lambda g: g["start"])
+        self._track_genes[species_id][track_id] = dict(genes_by_chrom)
+        return self._track_genes[species_id][track_id]
+
+    @staticmethod
+    def _derive_track_id(species_id: str, filename: str) -> str:
+        stem = filename
+        for prefix in (f"{species_id}.liftoff_", f"{species_id}.", "liftoff_"):
+            if stem.startswith(prefix):
+                stem = stem[len(prefix):]
+                break
+        for suffix in (".sorted.gff3.gz", ".gff3.gz", ".gff.gz", ".gff3", ".gff"):
+            if stem.endswith(suffix):
+                stem = stem[: -len(suffix)]
+                break
+        return stem or filename
+
+    def chromosome_summary(
+        self, species_id: str, chrom: str, bins: int = 200, track: str | None = None,
+    ) -> dict | None:
+        """Return binned gene density + QTL list for a single chromosome.
+        Pass `track` to bin against an annotation other than the primary."""
         length = self._chrom_lengths.get(species_id, {}).get(chrom)
         if not length:
             return None
@@ -158,7 +252,7 @@ class DataStore:
              "symbols": []}
             for i in range(bins)
         ]
-        for g in self._genes.get(species_id, {}).get(chrom, []):
+        for g in self._genes_for_track(species_id, track).get(chrom, []):
             mid = (g["start"] + g["end"]) // 2
             idx = min(mid // bin_size, bins - 1)
             gene_bins[idx]["count"] += 1
@@ -183,9 +277,33 @@ class DataStore:
             "chromosome": chrom,
             "length": length,
             "bin_size": bin_size,
+            "track": track or "primary",
             "gene_bins": gene_bins,
             "qtls": qtls,
         }
+
+    def _load_annotation_comparison(self, species_id: str) -> dict | None:
+        """Lazy-load data/annotations/<species>/comparison.json."""
+        if species_id in self._annotation_comparisons:
+            return self._annotation_comparisons[species_id]
+        path = self.data_dir / "annotations" / species_id / "comparison.json"
+        if not path.exists():
+            self._annotation_comparisons[species_id] = None
+            return None
+        self._annotation_comparisons[species_id] = json.loads(path.read_text())
+        return self._annotation_comparisons[species_id]
+
+    def annotation_summary(self, species_id: str) -> dict | None:
+        comp = self._load_annotation_comparison(species_id)
+        if not comp:
+            return None
+        return {"species_id": species_id, "tracks": comp.get("tracks", [])}
+
+    def annotation_pairs(self, species_id: str) -> dict | None:
+        comp = self._load_annotation_comparison(species_id)
+        if not comp:
+            return None
+        return {"species_id": species_id, "pairs": comp.get("pairs", {})}
 
     def get_qtls(
         self,

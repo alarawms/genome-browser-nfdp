@@ -2,7 +2,8 @@ DATA_DIR ?= data
 
 .PHONY: data data-docker process-docker download-genomes download-annotations download-qtls \
         index-genomes convert-qtls prepare-tracks enrich-ontologies \
-        setup add-genome build-custom-animal dev-backend dev-frontend dev test clean
+        setup add-genome register-annotation build-custom-animal \
+        dev-backend dev-frontend dev test clean
 
 ## === Setup ===
 
@@ -72,6 +73,24 @@ ifndef ID
 	@exit 1
 endif
 	bash scripts/add_genome.sh "$(ID)" "$(FASTA)" "$(or $(ASSEMBLY),$(ID))" "$(or $(NAME),$(ID))" "$(or $(SCIENTIFIC),)"
+
+## Register a new gene-annotation GFF as a track for an existing species.
+## Usage:
+##   make register-annotation ID=najdi SLUG=braker3 LABEL="Genes (BRAKER3)" GFF=/path/to/a.gff3 [PRIMARY=1]
+register-annotation:
+ifndef ID
+	@echo "Error: ID is required (species_id, e.g. najdi)"; @exit 1
+endif
+ifndef SLUG
+	@echo "Error: SLUG is required (short track id, e.g. braker3)"; @exit 1
+endif
+ifndef LABEL
+	@echo "Error: LABEL is required (e.g. \"Genes (BRAKER3 de novo)\")"; @exit 1
+endif
+ifndef GFF
+	@echo "Error: GFF is required (path to the annotation GFF3)"; @exit 1
+endif
+	bash scripts/register_annotation.sh "$(ID)" "$(SLUG)" "$(LABEL)" "$(GFF)" $(if $(PRIMARY),--primary,)
 
 ## Full per-animal track build: lift QTLs from DONOR, index GFF, compute QTL-gene
 ## overlap, run ontology enrichment. Requires paftools.js + bgzip + tabix on PATH.

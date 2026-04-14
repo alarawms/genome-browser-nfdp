@@ -42,10 +42,15 @@ class QTL(BaseModel):
     pto_name: str | None = None        # Livestock Product Trait (not on OLS4 — name only)
     pto_id: str | None = None
     pto_iri: str | None = None
-    # Genes overlapping this QTL (populated by scripts/map_qtl_genes.py against
-    # the gene-annotation track). Capped at MAX_GENES_PER_QTL = 200 entries.
+    # Genes overlapping this QTL (computed by scripts/compute_qtl_gene_overlap.py
+    # against the species' primary gene-annotation track). Capped at 200 entries.
     overlapping_genes: list[dict] | None = None
     overlapping_gene_count: int | None = None
+    # Per-track overlap map: track_id -> list of gene dicts. Populated by
+    # scripts/compute_per_track_overlaps.py for species with multiple tracks
+    # (Rambouillet liftoff vs Hu vs Texel vs de novo etc.). Lets the UI show
+    # which annotation source called which gene at each QTL.
+    overlapping_genes_by_track: dict[str, list[dict]] | None = None
     source: str | None = None
 
 
