@@ -46,20 +46,31 @@ export default function SearchBar({ speciesId, onNavigate }: Props) {
         className="w-56 rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none"
       />
       {open && results.length > 0 && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-gray-700 bg-gray-800 shadow-xl">
-          {results.map((r, i) => (
-            <button
-              key={i}
-              onMouseDown={() => handleSelect(r)}
-              className="flex w-full flex-col px-3 py-2 text-left hover:bg-gray-700"
-            >
-              <span className="text-sm text-white">{r.label}</span>
-              <span className="text-xs text-gray-400">
-                Chr{r.chromosome}:{r.start.toLocaleString()}-
-                {r.end.toLocaleString()} ({r.species_id})
-              </span>
-            </button>
-          ))}
+        <div className="absolute right-0 top-full z-50 mt-1 max-h-96 w-96 overflow-y-auto rounded-lg border border-gray-700 bg-gray-800 shadow-xl">
+          {results.map((r, i) => {
+            const isGene = r.type === "gene";
+            const tagColor = isGene
+              ? "bg-emerald-900/60 text-emerald-300"
+              : "bg-amber-900/60 text-amber-300";
+            return (
+              <button
+                key={i}
+                onMouseDown={() => handleSelect(r)}
+                className="flex w-full flex-col px-3 py-2 text-left hover:bg-gray-700"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-mono uppercase ${tagColor}`}>
+                    {isGene ? "GENE" : "QTL"}
+                  </span>
+                  <span className="truncate text-sm text-white">{r.label}</span>
+                </div>
+                <span className="mt-0.5 font-mono text-xs text-gray-400">
+                  {r.chromosome}:{r.start.toLocaleString()}-
+                  {r.end.toLocaleString()} · {r.species_id}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

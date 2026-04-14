@@ -26,8 +26,9 @@ class DataStore:
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
         self._qtl_frames: dict[str, pd.DataFrame] = {}
-        # species_id -> chromosome -> list[(start, end, symbol_or_None, name)]
-        self._genes: dict[str, dict[str, list[tuple]]] = {}
+        # species_id -> chromosome -> list[gene dict {start, end, symbol, name,
+        #   description, ncbi_gene_id}], sorted by start
+        self._genes: dict[str, dict[str, list[dict]]] = {}
         # species_id -> chromosome -> length
         self._chrom_lengths: dict[str, dict[str, int]] = {}
         self._load_all()
@@ -75,7 +76,7 @@ class DataStore:
         gff = self.data_dir / "annotations" / species_id / gff_file
         if not gff.exists():
             return
-        genes_by_chrom: dict[str, list[tuple]] = defaultdict(list)
+        genes_by_chrom: dict[str, list[dict]] = defaultdict(list)
         opener = gzip.open if str(gff).endswith(".gz") else open
         with opener(gff, "rt") as f:
             for line in f:
@@ -89,17 +90,30 @@ class DataStore:
                     end = int(parts[4])
                 except ValueError:
                     continue
-                # Cheap attribute parse — only need Name
+                # Parse just the attributes we need for search + chromosome view
                 name = None
+                description = None
+                dbxref = None
                 for a in parts[8].split(";"):
                     if a.startswith("Name="):
                         name = a[5:]
-                        break
+                    elif a.startswith("description="):
+                        description = a[12:].replace("%20", " ").replace("%2C", ",")
+                    elif a.startswith("Dbxref="):
+                        dbxref = a[7:]
                 symbol = name if name and not name.startswith("LOC") else None
-                genes_by_chrom[parts[0]].append((start, end, symbol, name or ""))
-        # Sort each chromosome's gene list once for fast binning
+                m = _GENEID_RE.search(dbxref or "")
+                genes_by_chrom[parts[0]].append({
+                    "start": start,
+                    "end": end,
+                    "symbol": symbol,
+                    "name": name or "",
+                    "description": description,
+                    "ncbi_gene_id": m.group(1) if m else None,
+                })
+        # Sort each chromosome's gene list once for fast binning + overlap
         for chrom in genes_by_chrom:
-            genes_by_chrom[chrom].sort(key=lambda g: g[0])
+            genes_by_chrom[chrom].sort(key=lambda g: g["start"])
         if genes_by_chrom:
             self._genes[species_id] = dict(genes_by_chrom)
 
@@ -144,12 +158,12 @@ class DataStore:
              "symbols": []}
             for i in range(bins)
         ]
-        for start, end, symbol, _name in self._genes.get(species_id, {}).get(chrom, []):
-            mid = (start + end) // 2
+        for g in self._genes.get(species_id, {}).get(chrom, []):
+            mid = (g["start"] + g["end"]) // 2
             idx = min(mid // bin_size, bins - 1)
             gene_bins[idx]["count"] += 1
-            if symbol and len(gene_bins[idx]["symbols"]) < 5:
-                gene_bins[idx]["symbols"].append(symbol)
+            if g["symbol"] and len(gene_bins[idx]["symbols"]) < 5:
+                gene_bins[idx]["symbols"].append(g["symbol"])
         # QTLs on this chromosome (lightweight projection)
         qtls = []
         df = self._qtl_frames.get(species_id)
@@ -222,23 +236,75 @@ class DataStore:
         ]
 
     def search(
-        self, query: str, species_id: str | None = None
+        self, query: str, species_id: str | None = None, limit: int = 50
     ) -> list[dict]:
-        results = []
-        q = query.lower()
+        """Rank-ordered search over genes and QTL traits.
+
+        Ranking (lower = better):
+          0  exact symbol match (case-insensitive)
+          1  symbol prefix match
+          2  symbol substring / locus_tag match / NCBI GeneID match
+          3  gene description substring
+          4  QTL trait substring (legacy behavior)
+        Returns SearchResult-shaped dicts with a `type` of "gene" or "qtl".
+        """
+        q = query.strip().lower()
+        if not q:
+            return []
+        ranked: list[tuple[int, dict]] = []
+
+        # --- Gene search ----------------------------------------------------
+        for sid, genes_by_chrom in self._genes.items():
+            if species_id and sid != species_id:
+                continue
+            for chrom, genes in genes_by_chrom.items():
+                for g in genes:
+                    sym = g["symbol"] or ""
+                    name = g["name"] or ""
+                    desc = (g["description"] or "").lower()
+                    sym_lc = sym.lower()
+                    name_lc = name.lower()
+                    rank = None
+                    if sym_lc == q:
+                        rank = 0
+                    elif sym and sym_lc.startswith(q):
+                        rank = 1
+                    elif q in sym_lc:
+                        rank = 2
+                    elif q in name_lc:
+                        rank = 2
+                    elif g["ncbi_gene_id"] and q == g["ncbi_gene_id"]:
+                        rank = 2
+                    elif desc and q in desc:
+                        rank = 3
+                    if rank is None:
+                        continue
+                    label = sym or name
+                    if g["description"]:
+                        label = f"{label} — {g['description']}"
+                    ranked.append((rank, {
+                        "type": "gene",
+                        "species_id": sid,
+                        "label": label,
+                        "chromosome": chrom,
+                        "start": g["start"],
+                        "end": g["end"],
+                    }))
+
+        # --- QTL trait search (existing behavior) ---------------------------
         for sid, df in self._qtl_frames.items():
             if species_id and sid != species_id:
                 continue
             matches = df[df["trait"].str.lower().str.contains(q, na=False)]
             for _, row in matches.iterrows():
-                results.append(
-                    {
-                        "type": "qtl",
-                        "species_id": sid,
-                        "label": f"{row['trait']} QTL",
-                        "chromosome": row["chromosome"],
-                        "start": int(row["start"]),
-                        "end": int(row["end"]),
-                    }
-                )
-        return results
+                ranked.append((4, {
+                    "type": "qtl",
+                    "species_id": sid,
+                    "label": f"{row['trait']} QTL",
+                    "chromosome": row["chromosome"],
+                    "start": int(row["start"]),
+                    "end": int(row["end"]),
+                }))
+
+        ranked.sort(key=lambda x: x[0])
+        return [r[1] for r in ranked[:limit]]

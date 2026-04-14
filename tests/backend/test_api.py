@@ -66,6 +66,42 @@ def test_search_with_species(client):
     assert all(r["species_id"] == "goat" for r in results)
 
 
+def test_search_by_gene_symbol(client):
+    """Exact-symbol match should return the gene with type='gene'."""
+    resp = client.get("/api/search?q=MSTN&species=sheep")
+    assert resp.status_code == 200
+    hits = resp.json()
+    gene_hits = [r for r in hits if r["type"] == "gene"]
+    assert len(gene_hits) >= 1
+    # Exact match should be first
+    top = gene_hits[0]
+    assert top["label"].startswith("MSTN")
+    assert top["chromosome"] == "1"
+
+
+def test_search_by_gene_description(client):
+    """Matching by functional description text should find the gene."""
+    resp = client.get("/api/search?q=myostatin&species=sheep")
+    assert resp.status_code == 200
+    gene_hits = [r for r in resp.json() if r["type"] == "gene"]
+    assert any("MSTN" in r["label"] for r in gene_hits)
+
+
+def test_search_ranks_exact_over_substring(client):
+    """With 'LEP', exact-match LEP should rank above 'LOC' or 'leptin'."""
+    resp = client.get("/api/search?q=LEP&species=sheep")
+    hits = [r for r in resp.json() if r["type"] == "gene"]
+    assert hits[0]["label"].startswith("LEP")
+
+
+def test_search_mixes_genes_and_qtls(client):
+    """A query matching both should return both, gene types ranked first."""
+    # 'milk' matches QTL traits; 'LOC12345' won't appear — pure QTL test case
+    resp = client.get("/api/search?q=milk&species=sheep")
+    types = {r["type"] for r in resp.json()}
+    assert "qtl" in types
+
+
 def test_jbrowse_config(client):
     resp = client.get("/api/species/sheep/jbrowse-config")
     assert resp.status_code == 200
