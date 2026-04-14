@@ -85,27 +85,28 @@ export default function QtlDetail({ qtl, onNavigate }: Props) {
         </div>
       )}
 
-      {/* Overlapping genes (Hu liftoff structure + Rambouillet symbols) */}
-      {qtl.overlapping_genes && qtl.overlapping_genes.length > 0 && (
-        <div className="mt-1.5">
-          <p className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-500">
-            Overlapping genes ({qtl.overlapping_gene_count})
-          </p>
+      {/* Overlapping genes — per-track sections if multi-annotation, else single list */}
+      {(() => {
+        const byTrack = qtl.overlapping_genes_by_track;
+        const trackEntries = byTrack
+          ? Object.entries(byTrack).filter(([, gs]) => gs && gs.length > 0)
+          : [];
+        const hasMultiTrack = trackEntries.length > 1;
+        const legacy = qtl.overlapping_genes;
+
+        const renderChips = (genes: typeof qtl.overlapping_genes, max = 6) => (
           <div className="flex flex-wrap gap-1">
-            {qtl.overlapping_genes.slice(0, 8).map((g) => {
+            {(genes || []).slice(0, max).map((g, i) => {
               const hasSymbol = !!g.symbol && !g.symbol.startsWith("LOC");
               const label = hasSymbol ? g.symbol : g.name;
               const tooltipParts = [
-                hasSymbol ? `${g.symbol}${g.name !== g.symbol ? ` (Hu: ${g.name})` : ""}` : g.name,
+                hasSymbol ? `${g.symbol}${g.name !== g.symbol ? ` (${g.name})` : ""}` : g.name,
                 g.description,
                 g.biotype,
                 `${g.start.toLocaleString()}-${g.end.toLocaleString()}`,
-                g.ramb_overlap_frac && g.ramb_overlap_frac < 0.8
-                  ? `Rambouillet overlap: ${Math.round(g.ramb_overlap_frac * 100)}%`
-                  : null,
               ].filter(Boolean);
               return (
-                <span key={g.id} className="inline-flex rounded overflow-hidden">
+                <span key={`${g.id}-${i}`} className="inline-flex rounded overflow-hidden">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -135,17 +136,48 @@ export default function QtlDetail({ qtl, onNavigate }: Props) {
                 </span>
               );
             })}
-            {qtl.overlapping_genes.length > 8 && (
+            {(genes?.length ?? 0) > max && (
               <span
                 className="inline-block rounded bg-gray-700/50 px-1.5 py-0.5 text-[10px] text-gray-400"
-                title={qtl.overlapping_genes.slice(8).map((g) => g.symbol || g.name).join(", ")}
+                title={(genes || []).slice(max).map((g) => g.symbol || g.name).join(", ")}
               >
-                +{qtl.overlapping_genes.length - 8} more
+                +{(genes?.length ?? 0) - max} more
               </span>
             )}
           </div>
-        </div>
-      )}
+        );
+
+        if (hasMultiTrack) {
+          return (
+            <div className="mt-1.5">
+              <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-500">
+                Overlapping genes per annotation
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {trackEntries.map(([trackId, genes]) => (
+                  <div key={trackId} className="border-l-2 border-gray-700 pl-2">
+                    <p className="mb-0.5 font-mono text-[9px] uppercase tracking-wide text-gray-500">
+                      {trackId} ({genes.length})
+                    </p>
+                    {renderChips(genes, 5)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        if (legacy && legacy.length > 0) {
+          return (
+            <div className="mt-1.5">
+              <p className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-500">
+                Overlapping genes ({qtl.overlapping_gene_count})
+              </p>
+              {renderChips(legacy, 8)}
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Stats row: rsID, P-value, gene, PMID */}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">

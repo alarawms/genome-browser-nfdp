@@ -1,0 +1,11 @@
+{
+  "sheep": {
+    "assembly_name": "ARS-UI_Ramb_v3.0",
+    "fasta_file": "sheep.fa.gz",
+    "gff_file": "sheep.sorted.gff3.gz",
+    "qtl_bed_file": "sheep_qtls.sorted.bed.gz",
+    "extra_gene_tracks": [
+      {"file": "sheep.braker3.sorted.gff3.gz", "label": "Genes (BRAKER3 fixture)"}
+    ]
+  }
+}

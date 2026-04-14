@@ -170,6 +170,63 @@ two-column TSV at `data/qtl/<species>/chromosome_name_map.tsv`. The QTL
 converter will apply it automatically. See
 `data/qtl/sheep/chromosome_name_map.tsv` for a worked example.
 
+### Comparing multiple annotations on the same genome
+
+The browser supports stacking up to N gene-annotation tracks per species —
+useful for comparing what different tools (or different reference liftoffs)
+say about the same genome.
+
+#### Add a new annotation as a comparison track
+
+```bash
+# Drop in a new GFF3 from any source (de novo, alternative liftoff, etc.)
+make register-annotation \
+    ID=najdi \
+    SLUG=braker3 \
+    LABEL="Genes (BRAKER3 de novo)" \
+    GFF=/path/to/braker3.gff3
+# Add PRIMARY=1 to make it the new primary (powers QtlExplorer chips + search)
+```
+
+This sorts/bgzips/tabixes the GFF, atomically updates `data/genomes.json`,
+and the new track shows up in the JBrowse track selector after a backend
+reload + browser refresh.
+
+#### Compute comparison metrics
+
+```bash
+# Per-track QTL-gene overlap (sidebar shows which annotation called which gene)
+python3 scripts/compute_per_track_overlaps.py najdi
+
+# Pairwise concordance metrics (Jaccard, name agreement, position drift)
+python3 scripts/compare_annotations.py najdi
+# → writes data/annotations/najdi/comparison.json
+```
+
+The browser then exposes:
+- **AnnotationComparison panel** (top of the genome view) — per-track stats
+  cards + pairwise concordance heatmap
+- **Per-track chromosome overview** — small chip row above the ideogram lets
+  you switch which annotation drives the gene density histogram
+- **Per-track gene chips in QtlExplorer** — each QTL card shows what genes
+  each annotation source called, grouped by track
+
+#### Recommended annotation tools (no RNA-Seq, local workstation)
+
+| Tool | Approach | Inputs needed | Workstation feasible? |
+|------|----------|---------------|:---------------------:|
+| **GeMoMa** | Cross-species comparative (protein homology + intron model) | Reference protein GFFs (e.g. Rambouillet, Hu, Texel) + target FASTA | ✅ — best quality without RNA-Seq |
+| **AUGUSTUS** (standalone) | Pure ab initio (HMM gene predictor) | Target FASTA + species model (use `mammal` or train custom) | ✅ — fast baseline |
+| **Funannotate** | Hybrid wrapper (Augustus + EVM) | Same as AUGUSTUS + optional protein evidence | ✅ — moderate |
+| **MAKER** (without RNA-Seq) | Multi-evidence (proteins + ab initio + repeats) | Target FASTA + protein evidence | ⚠️ slow — days on workstation |
+| **BRAKER3** | Augustus + GeneMark + ProtHint | Target FASTA + RNA-Seq + protein evidence | ❌ weak without RNA-Seq |
+| **Liftoff** (✅ already in use) | Lift gene models from a closely-related curated reference | Reference FASTA + GFF + target FASTA | ✅ ~1 hour per reference |
+
+**For Najdi specifically without RNA-Seq**, GeMoMa is the strongest non-liftoff
+choice — it uses reference protein alignments + intron models to predict genes,
+which captures both reference-known genes (with names/descriptions inherited) and
+breed-specific calls.
+
 ### Ontology enrichment
 
 Our pipeline auto-extracts `VTO_name` / `CMO_name` / `PTO_name` attributes

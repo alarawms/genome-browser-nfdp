@@ -5,6 +5,7 @@ import QtlExplorer from "./components/QtlExplorer";
 import GenomeBrowser from "./components/GenomeBrowser";
 import SearchBar from "./components/SearchBar";
 import ChromosomeOverview from "./components/ChromosomeOverview";
+import AnnotationComparison from "./components/AnnotationComparison";
 
 export default function App() {
   const { species, selectedId, select, loading } = useSpecies();
@@ -56,8 +57,9 @@ export default function App() {
           />
         </aside>
 
-        {/* Genome Browser (with chromosome overview on top) */}
+        {/* Genome Browser (with overview panels on top) */}
         <main className="flex flex-1 flex-col overflow-hidden">
+          <AnnotationComparison speciesId={selectedId} />
           <ChromosomeOverview
             speciesId={selectedId}
             onNavigate={(chr, start, end) =>

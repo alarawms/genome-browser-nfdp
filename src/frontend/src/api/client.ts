@@ -41,9 +41,13 @@ export interface QTL {
   pto_name?: string | null;
   pto_id?: string | null;
   pto_iri?: string | null;
-  // Genes whose interval overlaps this QTL (from liftoff gene annotation)
+  // Genes whose interval overlaps this QTL (from the species' primary track)
   overlapping_genes?: GeneOverlap[] | null;
   overlapping_gene_count?: number | null;
+  // Per-annotation-track overlap map: track_id -> [genes]. Present when the
+  // species has multiple gene tracks registered (e.g. liftoffs from multiple
+  // references, or de novo in parallel).
+  overlapping_genes_by_track?: Record<string, GeneOverlap[]> | null;
   source: string | null;
 }
 
@@ -110,8 +114,34 @@ export interface ChromosomeSummary {
   chromosome: string;
   length: number;
   bin_size: number;
+  track?: string;
   gene_bins: GeneBin[];
   qtls: ChromosomeQtl[];
+}
+
+export interface AnnotationTrackSummary {
+  track_id: string;
+  label: string;
+  gene_count: number;
+  named_count?: number;
+  named_pct?: number;
+  described_count?: number;
+  with_ncbi_gene_id?: number;
+  mean_length_bp?: number;
+  biotype_mix?: Record<string, number>;
+  chromosome_count?: number;
+}
+
+export interface AnnotationPair {
+  a: string;
+  b: string;
+  matched_pairs: number;
+  unique_a_count: number;
+  unique_b_count: number;
+  gene_jaccard: number;
+  name_agreements: number;
+  name_agreement_pct: number;
+  median_position_drift_bp: number;
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -143,8 +173,20 @@ export const api = {
   getChromosomes: (speciesId: string) =>
     fetchJson<ChromosomeInfo[]>(`/api/species/${speciesId}/chromosomes`),
 
-  getChromosomeSummary: (speciesId: string, chrom: string, bins = 200) =>
-    fetchJson<ChromosomeSummary>(
-      `/api/species/${speciesId}/chromosome/${encodeURIComponent(chrom)}/summary?bins=${bins}`
+  getChromosomeSummary: (speciesId: string, chrom: string, bins = 200, track?: string) => {
+    const trackParam = track ? `&track=${encodeURIComponent(track)}` : "";
+    return fetchJson<ChromosomeSummary>(
+      `/api/species/${speciesId}/chromosome/${encodeURIComponent(chrom)}/summary?bins=${bins}${trackParam}`,
+    );
+  },
+
+  getAnnotationsSummary: (speciesId: string) =>
+    fetchJson<{ species_id: string; tracks: AnnotationTrackSummary[] }>(
+      `/api/species/${speciesId}/annotations/summary`,
+    ),
+
+  getAnnotationsCompare: (speciesId: string) =>
+    fetchJson<{ species_id: string; pairs: Record<string, AnnotationPair> }>(
+      `/api/species/${speciesId}/annotations/compare`,
     ),
 };

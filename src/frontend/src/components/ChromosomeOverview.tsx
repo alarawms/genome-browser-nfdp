@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, ChromosomeInfo, ChromosomeSummary } from "../api/client";
+import { api, ChromosomeInfo, ChromosomeSummary, AnnotationTrackSummary } from "../api/client";
 
 interface Props {
   speciesId: string;
@@ -30,6 +30,8 @@ export default function ChromosomeOverview({ speciesId, onNavigate }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [summary, setSummary] = useState<ChromosomeSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tracks, setTracks] = useState<AnnotationTrackSummary[]>([]);
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [hover, setHover] = useState<{
     x: number;
     y: number;
@@ -49,12 +51,15 @@ export default function ChromosomeOverview({ speciesId, onNavigate }: Props) {
         list.find((c) => c.qtl_count > 0 && c.gene_count > 0) ?? list[0];
       setSelected(initial?.name ?? null);
     });
-    return () => {
-      cancelled = true;
-    };
+    // Load track list (best-effort; failures fall back to primary-only)
+    api.getAnnotationsSummary(speciesId)
+      .then((s) => { if (!cancelled) setTracks(s.tracks); })
+      .catch(() => { if (!cancelled) setTracks([]); });
+    setSelectedTrack(null);
+    return () => { cancelled = true; };
   }, [speciesId]);
 
-  // Load summary when selected chromosome changes
+  // Load summary when selected chromosome OR track changes
   useEffect(() => {
     if (!selected) {
       setSummary(null);
@@ -62,7 +67,7 @@ export default function ChromosomeOverview({ speciesId, onNavigate }: Props) {
     }
     let cancelled = false;
     setLoading(true);
-    api.getChromosomeSummary(speciesId, selected, 200).then((data) => {
+    api.getChromosomeSummary(speciesId, selected, 200, selectedTrack ?? undefined).then((data) => {
       if (cancelled) return;
       setSummary(data);
       setLoading(false);
@@ -70,7 +75,7 @@ export default function ChromosomeOverview({ speciesId, onNavigate }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [speciesId, selected]);
+  }, [speciesId, selected, selectedTrack]);
 
   // Observe container width for responsive SVG
   useEffect(() => {
@@ -173,6 +178,39 @@ export default function ChromosomeOverview({ speciesId, onNavigate }: Props) {
           </div>
         )}
       </div>
+
+      {/* Per-track selector chips (only when ≥2 tracks registered) */}
+      {tracks.length > 1 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] uppercase tracking-wide text-gray-500">
+            Gene track:
+          </span>
+          <button
+            onClick={() => setSelectedTrack(null)}
+            className={`rounded px-1.5 py-0.5 text-[10px] ${
+              !selectedTrack
+                ? "bg-emerald-700/70 text-emerald-50"
+                : "bg-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            primary
+          </button>
+          {tracks.map((t) => (
+            <button
+              key={t.track_id}
+              onClick={() => setSelectedTrack(t.track_id)}
+              className={`rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                selectedTrack === t.track_id
+                  ? "bg-emerald-700/70 text-emerald-50"
+                  : "bg-gray-800 text-gray-400 hover:text-white"
+              }`}
+              title={`${t.label} · ${t.gene_count.toLocaleString()} genes`}
+            >
+              {t.track_id}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* SVG ideogram */}
       <div className="relative mt-2">

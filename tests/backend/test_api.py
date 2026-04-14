@@ -178,3 +178,54 @@ def test_qtl_shape_includes_optional_enrichment_fields(client):
         for k in ("breed", "vto_id", "cmo_id", "flank_marker", "p_value",
                   "overlapping_genes", "overlapping_gene_count"):
             assert k in qtl, f"missing field {k} in QTL record"
+
+
+# --- Annotation comparison endpoints ----------------------------------------
+
+def test_annotations_summary(client):
+    """Pre-computed comparison.json fixture should drive the summary endpoint."""
+    resp = client.get("/api/species/sheep/annotations/summary")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["species_id"] == "sheep"
+    track_ids = {t["track_id"] for t in body["tracks"]}
+    assert {"primary", "braker3"} == track_ids
+
+
+def test_annotations_compare(client):
+    resp = client.get("/api/species/sheep/annotations/compare")
+    assert resp.status_code == 200
+    body = resp.json()
+    pairs = body["pairs"]
+    assert "primary__vs__braker3" in pairs
+    p = pairs["primary__vs__braker3"]
+    assert 0 <= p["gene_jaccard"] <= 1
+    assert p["matched_pairs"] >= 1
+
+
+def test_annotations_summary_404_when_no_comparison(client):
+    """Goat fixture has no comparison.json — must 404 cleanly."""
+    resp = client.get("/api/species/goat/annotations/summary")
+    assert resp.status_code == 404
+
+
+def test_chromosome_summary_with_track_param(client):
+    """?track=braker3 should bin against the BRAKER3 fixture."""
+    resp = client.get("/api/species/sheep/chromosome/1/summary?bins=10&track=braker3")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["track"] == "braker3"
+    # BRAKER3 fixture has 3 genes on chr1
+    assert sum(b["count"] for b in body["gene_bins"]) == 3
+    all_symbols = [s for b in body["gene_bins"] for s in b["symbols"]]
+    # Only NOVELG is unique to BRAKER3 — confirms we read the right track
+    assert "NOVELG" in all_symbols
+
+
+def test_chromosome_summary_default_track_is_primary(client):
+    """No ?track= → primary fixture (which has LOC12345, not NOVELG)."""
+    resp = client.get("/api/species/sheep/chromosome/1/summary?bins=10")
+    body = resp.json()
+    all_symbols = [s for b in body["gene_bins"] for s in b["symbols"]]
+    assert "NOVELG" not in all_symbols
+    assert "MSTN" in all_symbols  # from primary fixture
