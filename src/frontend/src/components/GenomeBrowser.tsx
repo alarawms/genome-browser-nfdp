@@ -24,15 +24,19 @@ export default function GenomeBrowser({ speciesId, location }: Props) {
           assembly: config.assembly as any,
           tracks: config.tracks as any[],
           defaultSession: {
-            name: "default",
+            // Session name varies with track count so JBrowse invalidates any
+            // cached session that was built when fewer tracks existed.
+            name: `${speciesId}-session-${config.tracks.length}`,
             view: {
-              id: "linearGenomeView",
+              id: `${speciesId}-lgv`,
               type: "LinearGenomeView",
               tracks: config.tracks.map((t: any) => ({
-                type: "FeatureTrack",
+                id: `${t.trackId}-shown`,
+                type: t.type || "FeatureTrack",
                 configuration: t.trackId,
                 displays: [
                   {
+                    id: `${t.trackId}-display-shown`,
                     type: "LinearBasicDisplay",
                     configuration: `${t.trackId}-LinearBasicDisplay`,
                   },
