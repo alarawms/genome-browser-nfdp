@@ -7,18 +7,32 @@ chromosome-level overview panel.
 ## Features
 
 - **JBrowse 2** embedded linear genome view with reference FASTA + gene + QTL tracks
-- **Multi-reference gene annotations** — render up to 3 independent liftoffs
-  per species (e.g. Rambouillet primary, Hu T2T + Texel for comparison)
-- **QTL ↔ gene overlap** — each QTL knows which genes it spans, with curated
-  symbols, product descriptions, NCBI Gene linkouts
-- **Trait ontology enrichment** — every QTL carries VT (Vertebrate Trait) and
-  CMO (Clinical Measurement) IDs with linkouts to EBI OLS term pages
+- **Multi-reference gene annotations** — stack N independent gene tracks per
+  species (e.g. Rambouillet + Hu T2T + Texel liftoffs) for direct visual
+  comparison, plus one-command registration of new annotations via
+  `make register-annotation`
+- **AnnotationComparison panel** — per-track summary cards (gene count,
+  % named, biotype mix) and a pairwise **concordance heatmap** with gene
+  Jaccard, name agreement %, and median position drift
+- **Per-track QTL ↔ gene overlap** — each QTL knows which genes *each*
+  annotation source called for that position (Rambouillet says X, Hu says Y)
+- **Per-track chromosome density** — the ideogram's gene density histogram
+  can be flipped to any registered annotation via a chip selector
 - **Chromosome overview panel** — horizontal ideogram showing QTL tick marks
   and binned gene density; click to navigate JBrowse
+- **Gene + trait search** — type a gene symbol (`MSTN`), locus tag
+  (`R6Z07_021498`), description (`myostatin`), or NCBI GeneID; rank-ordered
+  results across genes **and** QTL traits, scoped by species or global
+- **Trait ontology enrichment** — every QTL carries VT (Vertebrate Trait) and
+  CMO (Clinical Measurement) IDs with linkouts to EBI OLS term pages
 - **QTL explorer sidebar** — filter by trait category + chromosome, rich gene
   chips with hover tooltips, breed/rsID/PubMed linkouts
 - **Custom genome pipeline** — `make add-genome` + `make build-custom-animal`
   chain to go from a FASTA + reference liftoff to a fully-interactive browser
+- **Off-repo annotation pipeline** *(optional)* — `annotation_pipeline/`
+  directory with a Snakemake workflow that runs AUGUSTUS + GeMoMa
+  (+ optional Helixer) on a repeat-masked assembly to produce comparison tracks
+  reference-independently
 
 ## Species
 
@@ -34,18 +48,20 @@ Najdi is a Saudi sheep breed with a T2T (telomere-to-telomere) assembly.
 
 ```
 React + TS + Tailwind          FastAPI + pandas
-┌──────────────────────┐       ┌─────────────────────────────────┐
-│ ChromosomeOverview   │       │ /api/species                    │
-│ SpeciesSelector      │       │ /api/species/{id}/qtls          │
-│ SearchBar            │ ───►  │ /api/species/{id}/traits        │
-│ QtlExplorer          │       │ /api/species/{id}/chromosomes   │
-│ QtlDetail (chips)    │       │ /api/species/{id}/chromosome/   │
-│ GenomeBrowser        │       │   {chrom}/summary               │
-│   └─ JBrowse 2       │       │ /api/species/{id}/jbrowse-config│
-└──────────────────────┘       │ /api/search                     │
-        :3003                  │ /data/*  (static FASTA/GFF/BED) │
-                               └─────────────────────────────────┘
-                                          :8880
+┌────────────────────────┐     ┌─────────────────────────────────────────┐
+│ AnnotationComparison   │     │ /api/species                            │
+│ ChromosomeOverview     │     │ /api/species/{id}/qtls                  │
+│ SpeciesSelector        │     │ /api/species/{id}/traits                │
+│ SearchBar              │ ──► │ /api/species/{id}/chromosomes           │
+│ QtlExplorer            │     │ /api/species/{id}/chromosome/{chrom}/   │
+│ QtlDetail (gene chips) │     │   summary[?track=…]                     │
+│ GenomeBrowser          │     │ /api/species/{id}/annotations/summary   │
+│   └─ JBrowse 2         │     │ /api/species/{id}/annotations/compare   │
+└────────────────────────┘     │ /api/species/{id}/jbrowse-config        │
+         :3003                 │ /api/search   (genes + QTL traits)      │
+                               │ /data/*       (static FASTA/GFF/BED)    │
+                               └─────────────────────────────────────────┘
+                                                :8880
 ```
 
 ## Quick start — clone, run, test
@@ -83,8 +99,23 @@ tmux attach -t genome
 ### Run the tests
 
 ```bash
-make test   # 31 backend tests, <1 s
+make test   # 40 backend tests, <1 s
 ```
+
+### Search
+
+The header search bar matches across genes AND QTL traits:
+
+- **Gene symbol** — `MSTN`, `LEP`, `BMP15`, `MC1R` (exact matches rank first)
+- **Locus tag** — `R6Z07_021498` (Hu-style anonymous IDs)
+- **Gene description** — `myostatin`, `leptin receptor` (finds genes whose
+  functional description matches even when the name is a `LOC*` placeholder)
+- **NCBI GeneID** — `443449` (exact numeric match)
+- **QTL trait name** — `milk`, `sperm motility`, `fecal egg count`
+
+Results are ranked (exact symbol > prefix > substring > description > QTL
+trait), colored by type (emerald GENE / amber QTL), and clickable to navigate
+JBrowse. Scope with the species dropdown or search globally across all species.
 
 ## Production deployment
 
@@ -227,6 +258,11 @@ choice — it uses reference protein alignments + intron models to predict genes
 which captures both reference-known genes (with names/descriptions inherited) and
 breed-specific calls.
 
+**Ready-to-run local annotation pipeline**: the `annotation_pipeline/` directory
+(gitignored — exists on your clone only) contains a bash-driven workflow that
+runs AUGUSTUS + GeMoMa on a repeat-masked assembly and produces GFF3 outputs
+ready for `make register-annotation`. See its own `README.md` for setup.
+
 ### Ontology enrichment
 
 Our pipeline auto-extracts `VTO_name` / `CMO_name` / `PTO_name` attributes
@@ -262,15 +298,21 @@ signup at https://bioportal.bioontology.org/account. Results are cached in
 │           ├── QtlDetail.tsx            Rich gene + ontology chips
 │           ├── SearchBar.tsx, SpeciesSelector.tsx
 ├── scripts/
-│   ├── add_genome.sh                 Register a custom FASTA + index
-│   ├── build_custom_animal_tracks.sh End-to-end per-animal pipeline
-│   ├── convert_qtl_to_bed.py         QTLdb GFF → BED + JSON (rich attrs)
-│   ├── enrich_qtl_ontologies.py      EBI OLS + BioPortal term ID lookups
-│   ├── lift_qtls.py                  paftools-based cross-assembly QTL lift
-│   ├── compute_qtl_gene_overlap.py   QTL ↔ gene interval intersection
+│   ├── add_genome.sh                     Register a custom FASTA + index
+│   ├── register_annotation.sh            One-command add of a gene track
+│   ├── build_custom_animal_tracks.sh     End-to-end per-animal pipeline
+│   ├── convert_qtl_to_bed.py             QTLdb GFF → BED + JSON (rich attrs)
+│   ├── enrich_qtl_ontologies.py          EBI OLS + BioPortal term ID lookups
+│   ├── lift_qtls.py                      paftools cross-assembly QTL lift
+│   ├── compute_qtl_gene_overlap.py       QTL ↔ gene interval intersection
+│   ├── compute_per_track_overlaps.py     Per-annotation overlap maps
+│   ├── compare_annotations.py            Pairwise concordance metrics
 │   ├── download_{genomes,annotations,qtls}.sh
 │   ├── index_genomes.sh, prepare_tracks.sh
-├── tests/backend/               31 tests covering DataStore + API + config
+├── annotation_pipeline/         Off-repo local annotation workspace (gitignored;
+│                                 bash pipeline for AUGUSTUS + GeMoMa on a
+│                                 repeat-masked assembly). See its README.
+├── tests/backend/               40 tests covering DataStore + API + config
 ├── data/
 │   ├── genomes.json             Runtime per-species config (tracked)
 │   ├── ontology_cache.json      Cached OLS lookups (tracked, small)
